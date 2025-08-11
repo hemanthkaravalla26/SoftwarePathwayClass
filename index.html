@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background-color: #f0f4f8;
+    }
+    h1 {
+      color: #333;
+    }
+    form, table {
+      margin-top: 1rem;
+    }
+    input, button {
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    tr:nth-child(even) {
+      background-color: #eef;
+    }
+    .actions button {
+      margin-right: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+
+
+
+<h2>💱 Currency Exchange Rates (From External API)</h2>
+<button onclick="fetchExchangeRates()">Fetch Rates (USD)</button>
+<div id="currencyOutput"></div>
+<p>
+  📄 External API Docs: 
+  <a href="https://www.exchangerate-api.com/docs/free" target="_blank">
+    Exchange Rate API Docs
+  </a>
+</p>
+  <hr>
+
+  <h1>CRUD Operations Demo</h1>
+
+  <form id="itemForm">
+    <input type="text" id="name" placeholder="Item name" required>
+    <input type="number" id="quantity" placeholder="Quantity" required>
+    <button type="submit">Add Item</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Quantity</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="itemsTable"></tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    const apiUrl = 'http://localhost:3000/items';
+    const form = document.getElementById('itemForm');
+    const nameInput = document.getElementById('name');
+    const quantityInput = document.getElementById('quantity');
+    const tableBody = document.getElementById('itemsTable');
+
+    let items = [];
+
+    // Fetch and render items
+    async function fetchItems() {
+      const res = await axios.get(apiUrl);
+      items = res.data;
+      renderTable();
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = '';
+      items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input value="${item.name}" data-id="${item._id}" class="edit-name"></td>
+          <td><input type="number" value="${item.quantity}" data-id="${item._id}" class="edit-quantity"></td>
+          <td class="actions">
+            <button onclick="updateItem('${item._id}')">Update</button>
+            <button onclick="deleteItem('${item._id}')">Delete</button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // Add new item
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newItem = {
+        name: nameInput.value,
+        quantity: parseInt(quantityInput.value)
+      };
+      await axios.post(apiUrl, newItem);
+      nameInput.value = '';
+      quantityInput.value = '';
+      fetchItems();
+    });
+
+    // Update item
+    async function updateItem(id) {
+      const name = document.querySelector(`.edit-name[data-id='${id}']`).value;
+      const quantity = parseInt(document.querySelector(`.edit-quantity[data-id='${id}']`).value);
+      await axios.put(`${apiUrl}/${id}`, { name, quantity });
+      fetchItems();
+    }
+
+    // Delete item
+    async function deleteItem(id) {
+      await axios.delete(`${apiUrl}/${id}`);
+      fetchItems();
+    }
+
+    // Initial fetch
+    fetchItems();
+
+
+    async function fetchExchangeRates() {
+  const output = document.getElementById('currencyOutput');
+  output.innerHTML = 'Loading...';
+
+  try {
+    const res = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
+    const rates = res.data.rates;
+
+    // Show only a few currencies for demo
+    const selected = ['INR', 'EUR', 'GBP', 'JPY', 'CAD'];
+    const html = selected.map(cur => 
+      `<li>1 USD = ${rates[cur]} ${cur}</li>`).join('');
+
+    output.innerHTML = `<ul>${html}</ul>`;
+  } catch (err) {
+    output.innerHTML = 'Failed to fetch rates. Check console for error.';
+    console.error(err);
+  }
+}
+
+  </script>
+</body>
+</html>
